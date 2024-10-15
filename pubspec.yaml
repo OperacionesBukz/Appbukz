@@ -13,6 +13,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   image_picker: ^0.8.7+5
+  qr_code_scanner: ^1.0.0
   
   # Agregamos barcode_scan2 para el escaneo de códigos de barras
   barcode_scan2: ^4.1.6
