@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Importa el paquete
+import 'package:image_picker/image_picker.dart'; // Importa el paquete para la cámara
+import 'package:logging/logging.dart'; // Importa el paquete de logging
+
 
 void main() {
+  _setupLogging(); // Configura el logging
   runApp(const MyApp());
+}
+
+// Configura el logging globalmente
+void _setupLogging() {
+  Logger.root.level = Level.ALL; // Nivel de registro (puedes cambiarlo según tus necesidades)
+  Logger.root.onRecord.listen((record) {
+    // Imprime el log de forma estructurada
+    debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -42,6 +54,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final Logger _logger = Logger('MyHomePage'); // Logger específico para esta clase
   final ImagePicker _picker = ImagePicker(); // Instancia del selector de imágenes
   XFile? _image; // Variable para almacenar la imagen capturada
 
@@ -53,12 +66,13 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           _image = photo; // Guarda la imagen seleccionada
         });
+        _logger.info('Imagen capturada con éxito: ${photo.path}');
       }
     } catch (e) {
       setState(() {
         _image = null;
       });
-      print("Error al acceder a la cámara: $e");
+      _logger.severe('Error al acceder a la cámara: $e');
     }
   }
 
