@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Importa el paquete para la cámara
-import 'package:logging/logging.dart'; // Importa el paquete de logging
-
+import 'package:barcode_scan2/barcode_scan2.dart'; // Importa la librería de escaneo
+import 'package:logging/logging.dart'; // Importa logging para registrar eventos
 
 void main() {
-  _setupLogging(); // Configura el logging
+  _setupLogging(); // Configura logging globalmente
   runApp(const MyApp());
 }
 
-// Configura el logging globalmente
+// Configura logging global
 void _setupLogging() {
-  Logger.root.level = Level.ALL; // Nivel de registro (puedes cambiarlo según tus necesidades)
+  Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    // Imprime el log de forma estructurada
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
 }
@@ -23,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Escáner ISBN',
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
         textTheme: const TextTheme(
@@ -34,11 +32,11 @@ class MyApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             foregroundColor: Colors.black,
-            backgroundColor: const Color(0xFFF1E800), // Color del botón
+            backgroundColor: const Color(0xFFF1E800),
           ),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF1E800), // Color del AppBar
+          backgroundColor: Color(0xFFF1E800),
         ),
       ),
       home: const MyHomePage(),
@@ -54,25 +52,24 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final Logger _logger = Logger('MyHomePage'); // Logger específico para esta clase
-  final ImagePicker _picker = ImagePicker(); // Instancia del selector de imágenes
-  XFile? _image; // Variable para almacenar la imagen capturada
+  final Logger _logger = Logger('MyHomePage'); // Logger específico
+  String barcode = "No se ha escaneado ningún código"; // Almacena el código escaneado
 
-  // Método para abrir la cámara y tomar una foto
-  Future<void> openCamera() async {
+  // Método para escanear código de barras
+  Future<void> scanBarcode() async {
     try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null) {
-        setState(() {
-          _image = photo; // Guarda la imagen seleccionada
-        });
-        _logger.info('Imagen capturada con éxito: ${photo.path}');
-      }
+      var result = await BarcodeScanner.scan();
+      setState(() {
+        barcode = result.rawContent.isNotEmpty
+            ? "Código ISBN: ${result.rawContent}"
+            : "No se detectó ningún código";
+      });
+      _logger.info('Código escaneado con éxito: $barcode');
     } catch (e) {
       setState(() {
-        _image = null;
+        barcode = "Error en el escaneo: $e";
       });
-      _logger.severe('Error al acceder a la cámara: $e');
+      _logger.severe('Error al escanear código: $e');
     }
   }
 
@@ -82,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Image.asset(
           'assets/LOGOBUKZ1.png',
-          height: 40, // Ajusta el tamaño del logo según sea necesario
+          height: 40,
         ),
         centerTitle: true,
       ),
@@ -90,18 +87,15 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'Resultado del escaneo:',
-              style: TextStyle(fontSize: 18, color: Colors.black),
+            Text(
+              barcode,
+              style: const TextStyle(fontSize: 18, color: Colors.black),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
-            _image != null
-                ? Image.network(_image!.path) // Muestra la imagen capturada
-                : const Text('No se ha tomado ninguna foto.'),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: openCamera, // Llama al método para abrir la cámara
-              child: const Text('Abrir Cámara'),
+              onPressed: scanBarcode,
+              child: const Text('Escanear Código ISBN'),
             ),
           ],
         ),
