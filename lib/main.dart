@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart'; // Importa la librería para escaneo automático
 import 'package:logging/logging.dart'; // Importa logging para registrar eventos
 import 'dart:io'; // Para verificar plataforma
+import 'package:permission_handler/permission_handler.dart'; // Para manejar permisos de cámara
 
 void main() {
   _setupLogging(); // Configura logging globalmente
@@ -53,18 +54,33 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final Logger _logger = Logger('MyHomePage'); // Logger para esta clase
   String barcodeResult = "No se ha escaneado ningún código"; // Estado del código escaneado
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR'); // Clave del QRView
   QRViewController? controller; // Controlador para QRView
+  bool isCameraInitialized = false; // Variable para verificar si la cámara se inicializó correctamente
+
+  @override
+  void initState() {
+    super.initState();
+    _askCameraPermission(); // Pedir permiso de cámara en tiempo de ejecución
+  }
+
+  Future<void> _askCameraPermission() async {
+    final status = await Permission.camera.request();
+    if (status != PermissionStatus.granted) {
+      setState(() {
+        barcodeResult = "Permiso de cámara denegado";
+      });
+    }
+  }
 
   @override
   void reassemble() {
-    super.reassemble();
+    super.reassemble(); // Llamamos al método padre como es requerido por @mustCallSuper
     if (Platform.isAndroid) {
-      controller!.pauseCamera();
+      controller?.pauseCamera();
     }
-    controller!.resumeCamera();
+    controller?.resumeCamera();
   }
 
   @override
@@ -77,25 +93,32 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
 
-    // Escuchar el flujo de datos escaneados y filtrar solo códigos de barras EAN-13
+    // Verificar si la cámara se inicializa correctamente
     controller.scannedDataStream.listen((scanData) {
-      // Filtrar solo códigos del formato EAN-13 (ISBN-13)
-      if (scanData.format == BarcodeFormat.ean13) {
-        setState(() {
-          barcodeResult = "Código escaneado: ${scanData.code}";
-        });
-        _logger.info('Código escaneado con éxito: ${scanData.code}');
-      } else {
-        setState(() {
-          barcodeResult = "Formato no soportado: ${scanData.format}";
-        });
-        _logger.warning('Se detectó un formato no soportado: ${scanData.format}');
+      setState(() {
+        barcodeResult = "Código escaneado: ${scanData.code}";
+      });
+    });
+
+    controller.getSystemFeatures().then((value) {
+      if (value.hasFlash) {
+        debugPrint("La cámara tiene flash");
       }
+    });
+
+    controller.resumeCamera().then((_) {
+      setState(() {
+        isCameraInitialized = true;
+      });
+    }).catchError((error) {
+      setState(() {
+        barcodeResult = "Error al inicializar la cámara: $error";
+      });
     });
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // Implementación obligatoria del método build()
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
@@ -106,13 +129,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: <Widget>[
-          Expanded(
-            flex: 5,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
+          if (!isCameraInitialized)
+            const Center(child: CircularProgressIndicator())
+          else
+            Expanded(
+              flex: 5,
+              child: QRView(
+                key: qrKey,
+                onQRViewCreated: _onQRViewCreated,
+              ),
             ),
-          ),
           Expanded(
             flex: 1,
             child: Center(

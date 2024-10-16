@@ -15,6 +15,7 @@ dependencies:
   
   # el escaneo de códigos de barras
   qr_code_scanner: ^1.0.0
+  permission_handler: ^10.3.0
 
   # Agregamos MongoDB Realm para base de datos
   flutter_mongodb_realm: ^2.3.0
