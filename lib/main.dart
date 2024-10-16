@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart'; // Importa la librería para escaneo automático
-import 'package:logging/logging.dart'; // Importa logging para registrar eventos
-import 'dart:io'; // Para verificar plataforma
-import 'package:permission_handler/permission_handler.dart'; // Para manejar permisos de cámara
+import 'package:qr_code_scanner/qr_code_scanner.dart'; // Paquete para escaneo de QR y códigos de barras
+import 'dart:io'; // Para verificar la plataforma
 
 void main() {
-  _setupLogging(); // Configura logging globalmente
   runApp(const MyApp());
-}
-
-// Configura logging global
-void _setupLogging() {
-  Logger.root.level = Level.ALL; // Configura el nivel de logging
-  Logger.root.onRecord.listen((record) {
-    debugPrint('${record.level.name}: ${record.time}: ${record.message}');
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -57,26 +46,10 @@ class _MyHomePageState extends State<MyHomePage> {
   String barcodeResult = "No se ha escaneado ningún código"; // Estado del código escaneado
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR'); // Clave del QRView
   QRViewController? controller; // Controlador para QRView
-  bool isCameraInitialized = false; // Variable para verificar si la cámara se inicializó correctamente
-
-  @override
-  void initState() {
-    super.initState();
-    _askCameraPermission(); // Pedir permiso de cámara en tiempo de ejecución
-  }
-
-  Future<void> _askCameraPermission() async {
-    final status = await Permission.camera.request();
-    if (status != PermissionStatus.granted) {
-      setState(() {
-        barcodeResult = "Permiso de cámara denegado";
-      });
-    }
-  }
 
   @override
   void reassemble() {
-    super.reassemble(); // Llamamos al método padre como es requerido por @mustCallSuper
+    super.reassemble();
     if (Platform.isAndroid) {
       controller?.pauseCamera();
     }
@@ -93,52 +66,41 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
 
-    // Verificar si la cámara se inicializa correctamente
+    // Escuchar el flujo de datos escaneados
     controller.scannedDataStream.listen((scanData) {
       setState(() {
         barcodeResult = "Código escaneado: ${scanData.code}";
       });
     });
 
-    controller.getSystemFeatures().then((value) {
-      if (value.hasFlash) {
-        debugPrint("La cámara tiene flash");
-      }
-    });
-
-    controller.resumeCamera().then((_) {
-      setState(() {
-        isCameraInitialized = true;
-      });
-    }).catchError((error) {
-      setState(() {
-        barcodeResult = "Error al inicializar la cámara: $error";
-      });
-    });
+    controller.resumeCamera();
   }
 
   @override
-  Widget build(BuildContext context) { // Implementación obligatoria del método build()
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          'assets/LOGOBUKZ1.png',
-          height: 40, // Tamaño del logo
-        ),
-        centerTitle: true, // Centra el logo en el AppBar
+        title: const Text("Escáner de Códigos de Barras"),
+        centerTitle: true, // Centra el título en el AppBar
       ),
       body: Column(
         children: <Widget>[
-          if (!isCameraInitialized)
-            const Center(child: CircularProgressIndicator())
-          else
-            Expanded(
-              flex: 5,
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
+          // QRView que se encarga de mostrar la vista previa de la cámara y escanear códigos
+          Expanded(
+            flex: 5,
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
+              overlay: QrScannerOverlayShape( // Añadir una forma de overlay
+                borderColor: Colors.red,
+                borderRadius: 10,
+                borderLength: 30,
+                borderWidth: 10,
+                cutOutSize: 300, // Tamaño del área de escaneo
               ),
             ),
+          ),
+          // Resultado del código escaneado
           Expanded(
             flex: 1,
             child: Center(
