@@ -19,6 +19,7 @@ dependencies:
   # Agregamos MongoDB Realm para base de datos
   flutter_mongodb_realm: ^2.3.0
   logging: ^1.2.0
+  mobile_scanner: ^6.0.1
 
 dev_dependencies:
   flutter_test:
