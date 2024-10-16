@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:barcode_scan2/barcode_scan2.dart'; // Librería de escaneo de códigos
-import 'package:logging/logging.dart'; // Logging para eventos
+import 'package:qr_code_scanner/qr_code_scanner.dart'; // Importa la librería para escaneo automático
+import 'package:logging/logging.dart'; // Importa logging para registrar eventos
+import 'dart:io'; // Para verificar plataforma
 
 void main() {
   _setupLogging(); // Configura logging globalmente
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Escáner ISBN',
+      title: 'Escáner ISBN Automático',
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
         textTheme: const TextTheme(
@@ -53,24 +54,34 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final Logger _logger = Logger('MyHomePage'); // Logger para esta clase
-  String barcode = "No se ha escaneado ningún código"; // Estado del código escaneado
+  String barcodeResult = "No se ha escaneado ningún código"; // Estado del código escaneado
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR'); // Clave del QRView
+  QRViewController? controller; // Controlador para QRView
 
-  // Método para iniciar el escaneo de código de barras
-  Future<void> scanBarcode() async {
-    try {
-      var result = await BarcodeScanner.scan(); // Escanea el código
-      setState(() {
-        barcode = result.rawContent.isNotEmpty
-            ? "Código ISBN: ${result.rawContent}"
-            : "No se detectó ningún código";
-      });
-      _logger.info('Código escaneado: $barcode');
-    } catch (e) {
-      setState(() {
-        barcode = "Error en el escaneo: $e";
-      });
-      _logger.severe('Error durante el escaneo: $e');
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
     }
+    controller!.resumeCamera();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  // Método que maneja el escaneo de códigos en tiempo real
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        barcodeResult = "Código escaneado: ${scanData.code}";
+      });
+      _logger.info('Código escaneado con éxito: ${scanData.code}');
+    });
   }
 
   @override
@@ -83,22 +94,25 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         centerTitle: true, // Centra el logo en el AppBar
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              barcode, // Muestra el resultado del escaneo
-              style: const TextStyle(fontSize: 18, color: Colors.black),
-              textAlign: TextAlign.center,
+      body: Column(
+        children: <Widget>[
+          Expanded(
+            flex: 5,
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: scanBarcode, // Inicia el escaneo al presionar
-              child: const Text('Escanear Código ISBN'),
+          ),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: Text(
+                barcodeResult, // Muestra el código escaneado en tiempo real
+                style: const TextStyle(fontSize: 18, color: Colors.black),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
