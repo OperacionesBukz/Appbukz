@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; // Importa la librería para escaneo automático
-import 'package:logging/logging.dart'; // Logging para eventos
+import 'package:qr_code_scanner/qr_code_scanner.dart'; // Importa la librería para escaneo automático
+import 'package:logging/logging.dart'; // Importa logging para registrar eventos
+import 'dart:io'; // Para verificar plataforma
 
 void main() {
   _setupLogging(); // Configura logging globalmente
@@ -54,14 +55,33 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final Logger _logger = Logger('MyHomePage'); // Logger para esta clase
   String barcodeResult = "No se ha escaneado ningún código"; // Estado del código escaneado
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR'); // Clave del QRView
+  QRViewController? controller; // Controlador para QRView
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    }
+    controller!.resumeCamera();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
 
   // Método que maneja el escaneo de códigos en tiempo real
-  void _onDetect(BarcodeCapture barcodeCapture) {
-    final String code = barcodeCapture.barcodes.first.rawValue ?? 'No se detectó un código';
-    setState(() {
-      barcodeResult = "Código escaneado: $code";
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        barcodeResult = "Código escaneado: ${scanData.code}";
+      });
+      _logger.info('Código escaneado con éxito: ${scanData.code}');
     });
-    _logger.info('Código escaneado con éxito: $code');
   }
 
   @override
@@ -78,8 +98,9 @@ class _MyHomePageState extends State<MyHomePage> {
         children: <Widget>[
           Expanded(
             flex: 5,
-            child: MobileScanner(
-              onDetect: _onDetect, // Escanea el código automáticamente
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
             ),
           ),
           Expanded(

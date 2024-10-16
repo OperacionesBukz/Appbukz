@@ -13,13 +13,12 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   
-  # Agregamos barcode_scan2 para el escaneo de códigos de barras
-  barcode_scan2: ^4.1.6
+  # el escaneo de códigos de barras
+  qr_code_scanner: ^1.0.0
 
   # Agregamos MongoDB Realm para base de datos
   flutter_mongodb_realm: ^2.3.0
   logging: ^1.2.0
-  mobile_scanner: ^6.0.1
 
 dev_dependencies:
   flutter_test:
