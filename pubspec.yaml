@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # el escaneo de códigos de barras
-  qr_code_scanner: ^1.0.0
+  qr_code_scanner: ^0.7.0
   permission_handler: ^10.3.0
 
   # Agregamos MongoDB Realm para base de datos
