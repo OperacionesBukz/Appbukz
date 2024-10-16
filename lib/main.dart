@@ -76,11 +76,21 @@ class _MyHomePageState extends State<MyHomePage> {
   // Método que maneja el escaneo de códigos en tiempo real
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
+
+    // Escuchar el flujo de datos escaneados y filtrar solo códigos de barras EAN-13
     controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        barcodeResult = "Código escaneado: ${scanData.code}";
-      });
-      _logger.info('Código escaneado con éxito: ${scanData.code}');
+      // Filtrar solo códigos del formato EAN-13 (ISBN-13)
+      if (scanData.format == BarcodeFormat.ean13) {
+        setState(() {
+          barcodeResult = "Código escaneado: ${scanData.code}";
+        });
+        _logger.info('Código escaneado con éxito: ${scanData.code}');
+      } else {
+        setState(() {
+          barcodeResult = "Formato no soportado: ${scanData.format}";
+        });
+        _logger.warning('Se detectó un formato no soportado: ${scanData.format}');
+      }
     });
   }
 
